@@ -9,6 +9,7 @@ import { BoxHelper } from 'three';
 
 const Model = () => {
   const modelRef = useRef();
+  const groundBoxRef = useRef();
 
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
@@ -23,36 +24,16 @@ const Model = () => {
       
       // Normal bounding box
       const box = new BoxHelper(gltf.scene, 0x0000ff);
-      box.material.opacity = 0.8;
+      box.material.opacity = 0.25;
       box.material.transparent = true;
       modelRef.current.add(box);
 
-      // Yere yansıtılan bounding box
+      // Boyutları hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
-      const groundBox = new THREE.Mesh(
-        new THREE.BoxGeometry(
-          (bbox.max.x - bbox.min.x) * 0.005,
-          0.01,
-          (bbox.max.z - bbox.min.z) * 0.005
-        ),
-        new THREE.MeshBasicMaterial({
-          color: 0xff0000,
-          opacity: 0.8,
-          transparent: true
-        })
-      );
-      
-      groundBox.position.set(
-        (bbox.max.x + bbox.min.x) * 0.005 / 2,
-        0,
-        (bbox.max.z + bbox.min.z) * 0.005 / 2
-      );
-      
-      modelRef.current.add(groundBox);
-
-      // Debug için boyutları konsola yazdır
       const size = new THREE.Vector3();
       bbox.getSize(size);
+      
+      // Konsola boyutları yazdır
       console.log('Model boyutları:', {
         width: size.x * 0.005,
         height: size.y * 0.005,
@@ -64,10 +45,24 @@ const Model = () => {
   return (
     <group ref={modelRef}>
       <primitive object={gltf.scene} />
+      
+      {/* Zemine yansıyan box */}
+      <mesh 
+        position={[0, 0.01, 0]} 
+        rotation={[-Math.PI / 2, 0, 0]}
+        ref={groundBoxRef}
+      >
+        <planeGeometry args={[2, 2]} />
+        <meshBasicMaterial 
+          color="#0000ff"
+          transparent
+          opacity={0.2}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 };
-
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
