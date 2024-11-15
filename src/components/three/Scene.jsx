@@ -23,17 +23,24 @@ const Model = () => {
       
       // Bounding box hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
+      
+      // Sadece yatay boyutları al
       const size = new THREE.Vector3();
       bbox.getSize(size);
+      size.y = 0.1; // Yüksekliği minimize et
 
-      // Box helper oluştur
+      // Box helper'ı yere yerleştir
       if (boxRef.current) {
         boxRef.current.position.set(
           (bbox.max.x + bbox.min.x) / 2,
-          (bbox.max.y + bbox.min.y) / 2,
+          bbox.min.y + 0.05, // Yere yakın
           (bbox.max.z + bbox.min.z) / 2
         );
-        boxRef.current.scale.set(size.x, size.y, size.z);
+        boxRef.current.scale.set(
+          size.x * 0.005, // Scale faktörünü uygula
+          size.y,
+          size.z * 0.005
+        );
       }
     }
   }, [gltf]);
@@ -48,7 +55,6 @@ const Model = () => {
     </group>
   );
 };
-
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
