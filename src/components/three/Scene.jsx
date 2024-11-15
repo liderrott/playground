@@ -11,7 +11,7 @@ const Model = () => {
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   
-  const gltf = useLoader(GLTFLoader, '/models/1.glb', (loader) => {
+  const gltf = useLoader(GLTFLoader, '/models/EKO-21.glb', (loader) => {
     loader.setDRACOLoader(dracoLoader);
   });
 
