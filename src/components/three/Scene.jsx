@@ -32,16 +32,16 @@ const Model = () => {
       gltf.scene.traverse((child) => {
         if (child.isMesh) {
           // Threshold değeri ile sadece keskin kenarları seç
-          const edges = new EdgesGeometry(child.geometry, 30); // 30 derece açı eşiği
+          const edges = new EdgesGeometry(child.geometry, 15); // 15 derece açı eşiği
           
           // Kenar materyali
           const line = new LineSegments(
             edges,
             new LineBasicMaterial({ 
-              color: '#0000ff',
-              linewidth: 2,     // Daha kalın çizgi
+              color: '#000000',
+              linewidth: 1,     // Daha kalın çizgi
               transparent: true,
-              opacity: 0.8      // Daha belirgin
+              opacity: 1      // Daha belirgin
             })
           );
 
