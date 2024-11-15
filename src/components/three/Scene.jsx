@@ -20,6 +20,7 @@ const Model = () => {
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
+      // Yeni scale değeri: 0.1
       gltf.scene.scale.set(0.1, 0.1, 0.1);
       
       // Normal bounding box
@@ -33,11 +34,25 @@ const Model = () => {
       const size = new THREE.Vector3();
       bbox.getSize(size);
       
-      // Konsola boyutları yazdır
+      // Ground box'ın boyutlarını güncelle
+      if (groundBoxRef.current) {
+        groundBoxRef.current.scale.set(
+          size.x * 0.1,
+          size.z * 0.1,
+          1
+        );
+        groundBoxRef.current.position.set(
+          (bbox.max.x + bbox.min.x) * 0.1 / 2,
+          0.01,
+          (bbox.max.z + bbox.min.z) * 0.1 / 2
+        );
+      }
+      
+      // Debug bilgileri
       console.log('Model boyutları:', {
-        width: size.x * 0.005,
-        height: size.y * 0.005,
-        depth: size.z * 0.005
+        width: size.x * 0.1,
+        height: size.y * 0.1,
+        depth: size.z * 0.1
       });
     }
   }, [gltf]);
@@ -48,11 +63,10 @@ const Model = () => {
       
       {/* Zemine yansıyan box */}
       <mesh 
-        position={[0, 0.01, 0]} 
         rotation={[-Math.PI / 2, 0, 0]}
         ref={groundBoxRef}
       >
-        <planeGeometry args={[2, 2]} />
+        <planeGeometry args={[1, 1]} />
         <meshBasicMaterial 
           color="#0000ff"
           transparent
@@ -63,12 +77,13 @@ const Model = () => {
     </group>
   );
 };
+
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
       <Canvas 
         camera={{ 
-          position: [4, 4, 4], 
+          position: [8, 8, 8], // Kamerayı biraz uzaklaştırdık
           fov: 50,
           near: 0.1,
           far: 1000
@@ -88,7 +103,7 @@ const Scene = () => {
 
           {/* Grid */}
           <Grid 
-            args={[10, 10]} 
+            args={[20, 20]} // Grid'i büyüttük
             position={[0, 0, 0]}
             cellSize={0.5}
             cellThickness={0.5}
@@ -105,8 +120,8 @@ const Scene = () => {
           <OrbitControls 
             enableDamping={true}
             dampingFactor={0.05}
-            minDistance={2}
-            maxDistance={10}
+            minDistance={4} // Min mesafeyi artırdık
+            maxDistance={20} // Max mesafeyi artırdık
             maxPolarAngle={Math.PI / 2}
           />
           
@@ -114,7 +129,7 @@ const Scene = () => {
           <Model />
           
           {/* Yardımcı eksenler */}
-          <axesHelper args={[5]} />
+          <axesHelper args={[10]} /> {/* Eksenleri uzattık */}
         </Suspense>
       </Canvas>
     </div>
