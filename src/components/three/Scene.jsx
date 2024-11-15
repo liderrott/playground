@@ -22,7 +22,7 @@ const Model = () => {
   useEffect(() => {
     if (gltf.scene) {
       const scene = gltf.scene;
-      scene.scale.set(0.005, 0.005, 0.005);
+      scene.scale.set(1, 1, 1);
       scene.position.set(0, 0, 0);
 
       // Tüm mesh'leri topla
