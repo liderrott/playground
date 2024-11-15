@@ -7,46 +7,46 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'; // GLTF form
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'; // Sıkıştırılmış modeller için
 import * as THREE from 'three'; // Three.js kütüphanesi
 import { BoxHelper } from 'three'; // Bounding box oluşturmak için
+import { Edges, Select } from '@react-three/drei'; // Edges için yeni import
 
 const Model = () => {
-  // Model referansı ve bounding box state'i
-  const modelRef = useRef(); // 3D modele referans
-  const [boundingBox, setBoundingBox] = useState(null); // Bounding box bilgilerini tutmak için state
+  const modelRef = useRef();
+  const [boundingBox, setBoundingBox] = useState(null);
 
-  // Draco loader kurulumu (model sıkıştırma çözücü)
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   
-  // GLTF modelini yükleme
   const gltf = useLoader(GLTFLoader, '/models/EKO-21.glb', (loader) => {
     loader.setDRACOLoader(dracoLoader);
   });
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      // Modeli ölçeklendirme (0.1 kat küçültme)
+      // Modeli ölçeklendirme
       gltf.scene.scale.set(0.1, 0.1, 0.1);
-      
-      // Mavi renkli bounding box oluşturma
-      const box = new BoxHelper(gltf.scene, 0x0000ff);
-      box.material.opacity = 0.25; // Yarı saydam
-      box.material.transparent = true;
-      modelRef.current.add(box);
 
-      // Modelin boyutlarını ve merkez noktasını hesaplama
+      // Modelin her mesh'ine kenar çizgisi ekleme
+      gltf.scene.traverse((child) => {
+        if (child.isMesh) {
+          // Mesh'in geometrisini güncelle
+          child.geometry.computeBoundingBox();
+          child.geometry.computeBoundingSphere();
+        }
+      });
+      
+      // Boyutları hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
       const center = new THREE.Vector3();
       bbox.getCenter(center);
       
-      // Bounding box bilgilerini state'e kaydetme
       setBoundingBox({
         size: {
-          x: (bbox.max.x - bbox.min.x), // Genişlik
-          z: (bbox.max.z - bbox.min.z)  // Derinlik
+          x: (bbox.max.x - bbox.min.x),
+          z: (bbox.max.z - bbox.min.z)
         },
         center: {
-          x: center.x * 0.1, // Merkez X (ölçeklendirilmiş)
-          z: center.z * 0.1  // Merkez Z (ölçeklendirilmiş)
+          x: center.x * 0.1,
+          z: center.z * 0.1
         }
       });
     }
@@ -54,21 +54,32 @@ const Model = () => {
 
   return (
     <group ref={modelRef}>
-      <primitive object={gltf.scene} /> {/* 3D modeli sahneye ekleme */}
+      {/* Model ve kenarları */}
+      <Select>
+        <primitive object={gltf.scene}>
+          {/* Her mesh için kenar çizgisi ekle */}
+          <Edges
+            threshold={15} // Açı eşiği (derece)
+            color="#0000ff" // Kenar rengi
+            scale={1} // Kenar kalınlığı
+          />
+        </primitive>
+      </Select>
+
+      {/* Zemin yansıması */}
       {boundingBox && (
-        // Zemin yansıması için mesh oluşturma
         <mesh 
-          position={[boundingBox.center.x, 0.01, boundingBox.center.z]} // Zeminden biraz yukarıda
-          rotation={[-Math.PI / 2, 0, 0]} // Yatay düzlemde
+          position={[boundingBox.center.x, 0.01, boundingBox.center.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry 
-            args={[boundingBox.size.x, boundingBox.size.z]} // Modelin boyutlarında
+            args={[boundingBox.size.x, boundingBox.size.z]} 
           />
           <meshBasicMaterial 
-            color="#0000ff" // Mavi renk
-            opacity={0.3} // Yarı saydam
+            color="#0000ff"
+            opacity={0.3}
             transparent
-            side={THREE.DoubleSide} // Çift taraflı görünüm
+            side={THREE.DoubleSide}
           />
         </mesh>
       )}
