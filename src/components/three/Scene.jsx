@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react'; // useState eklendi
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
@@ -30,12 +30,18 @@ const Model = () => {
 
       // Boyutları hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
-      setBoundingBox(bbox);
-
-      console.log('Model boyutları:', {
-        width: (bbox.max.x - bbox.min.x) * 0.1,
-        depth: (bbox.max.z - bbox.min.z) * 0.1,
-        height: (bbox.max.y - bbox.min.y) * 0.1
+      const center = new THREE.Vector3();
+      bbox.getCenter(center);
+      
+      setBoundingBox({
+        size: {
+          x: (bbox.max.x - bbox.min.x) * 0.1,
+          z: (bbox.max.z - bbox.min.z) * 0.1
+        },
+        center: {
+          x: center.x * 0.1,
+          z: center.z * 0.1
+        }
       });
     }
   }, [gltf]);
@@ -45,14 +51,11 @@ const Model = () => {
       <primitive object={gltf.scene} />
       {boundingBox && (
         <mesh 
-          position={[0, 0.01, 0]}
+          position={[boundingBox.center.x, 0.01, boundingBox.center.z]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry 
-            args={[
-              (boundingBox.max.x - boundingBox.min.x) * 0.1,
-              (boundingBox.max.z - boundingBox.min.z) * 0.1
-            ]} 
+            args={[boundingBox.size.x, boundingBox.size.z]} 
           />
           <meshBasicMaterial 
             color="#0000ff"
