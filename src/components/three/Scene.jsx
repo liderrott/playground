@@ -22,46 +22,81 @@ const Model = () => {
   useEffect(() => {
     if (gltf.scene) {
       const scene = gltf.scene;
-      scene.scale.set(1, 1, 1);
+      scene.scale.set(0.005, 0.005, 0.005);
       scene.position.set(0, 0, 0);
 
-      // Tüm mesh'leri topla
-      const meshes = [];
+      const groundPoints = [];
+      const bbox = new THREE.Box3().setFromObject(scene);
+      const bottomY = bbox.min.y;
+      const tolerance = 0.1; // 10cm yukarıya kadar olan noktaları al
+
       scene.traverse((child) => {
-        if (child.isMesh) {
-          meshes.push(child);
+        if (child.isMesh && child.geometry) {
+          const positions = child.geometry.attributes.position.array;
+          const matrix = child.matrixWorld;
+
+          // Her vertex'i kontrol et
+          for (let i = 0; i < positions.length; i += 3) {
+            const vertex = new THREE.Vector3(
+              positions[i],
+              positions[i + 1],
+              positions[i + 2]
+            );
+            vertex.applyMatrix4(matrix);
+
+            // Zemine yakın noktaları al
+            if (Math.abs(vertex.y - bottomY) <= tolerance) {
+              const point = new THREE.Vector2(
+                vertex.x * scene.scale.x,
+                vertex.z * scene.scale.x
+              );
+              
+              // Tekrarlayan noktaları filtrele
+              if (!groundPoints.some(p => 
+                Math.abs(p.x - point.x) < 0.01 && 
+                Math.abs(p.y - point.y) < 0.01
+              )) {
+                groundPoints.push(point);
+              }
+            }
+          }
         }
       });
 
-      // Her mesh için bounding box hesapla
-      const boxes = meshes.map(mesh => {
-        const box = new THREE.Box3().setFromObject(mesh);
-        return box;
-      });
+      // Raycasting ile zemine değen noktaları kontrol et
+      const raycaster = new THREE.Raycaster();
+      const direction = new THREE.Vector3(0, -1, 0);
+      const rayPoints = [];
 
-      // En dıştaki bounding box'ı bul
-      const mainBox = new THREE.Box3();
-      boxes.forEach(box => mainBox.union(box));
+      // Grid üzerinde noktalar oluştur
+      const gridSize = 20;
+      const step = (bbox.max.x - bbox.min.x) / gridSize;
 
-      // Köşe noktalarını al ve scale uygula
-      const corners = [
-        new THREE.Vector2(mainBox.min.x, mainBox.min.z),
-        new THREE.Vector2(mainBox.min.x, mainBox.max.z),
-        new THREE.Vector2(mainBox.max.x, mainBox.min.z),
-        new THREE.Vector2(mainBox.max.x, mainBox.max.z),
-        // Orta noktaları da ekle
-        new THREE.Vector2(mainBox.min.x, (mainBox.min.z + mainBox.max.z) / 2),
-        new THREE.Vector2(mainBox.max.x, (mainBox.min.z + mainBox.max.z) / 2),
-        new THREE.Vector2((mainBox.min.x + mainBox.max.x) / 2, mainBox.min.z),
-        new THREE.Vector2((mainBox.min.x + mainBox.max.x) / 2, mainBox.max.z),
-      ].map(p => p.multiplyScalar(scene.scale.x));
+      for (let x = bbox.min.x; x <= bbox.max.x; x += step) {
+        for (let z = bbox.min.z; z <= bbox.max.z; z += step) {
+          const origin = new THREE.Vector3(x, bbox.max.y + 1, z);
+          raycaster.set(origin, direction);
+
+          const intersects = raycaster.intersectObject(scene, true);
+          if (intersects.length > 0) {
+            const point = new THREE.Vector2(
+              intersects[0].point.x * scene.scale.x,
+              intersects[0].point.z * scene.scale.x
+            );
+            rayPoints.push(point);
+          }
+        }
+      }
+
+      // Tüm noktaları birleştir
+      const allPoints = [...groundPoints, ...rayPoints];
 
       // Convex hull hesapla
-      const hull = jarvisMarch(corners);
+      const hull = jarvisMarch(allPoints);
       
       // Noktaları yumuşat ve genişlet
-      const expandedHull = expandHull(hull, 0.4);
-      const smoothedHull = smoothPoints(expandedHull, 0.1);
+      const expandedHull = expandHull(hull, 0.3);
+      const smoothedHull = smoothPoints(expandedHull, 0.15);
 
       // 3D noktaları oluştur
       const groundProjection = smoothedHull.map(p => 
