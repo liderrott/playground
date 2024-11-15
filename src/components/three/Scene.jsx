@@ -19,7 +19,7 @@ const Model = () => {
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      gltf.scene.scale.set(0.005, 0.005, 0.005);
+      gltf.scene.scale.set(0.1, 0.1, 0.1);
       
       // Normal bounding box
       const box = new BoxHelper(gltf.scene, 0x0000ff);
