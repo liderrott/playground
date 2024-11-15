@@ -5,6 +5,7 @@ import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import * as THREE from 'three';
+import { BoxHelper } from 'three';  // BoxHelper'ı ekledik
 
 const Model = () => {
   const modelRef = useRef();
