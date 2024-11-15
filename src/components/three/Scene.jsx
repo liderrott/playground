@@ -19,49 +19,53 @@ const Model = () => {
     if (!gltf.scene) return;
 
     const scene = gltf.scene;
-    scene.scale.set(0.1, 0.1, 0.1);
+    scene.scale.set(0.005, 0.005, 0.005);
     scene.position.set(0, 0, 0);
 
-    const points = [];
+    const points = new Set();
     const bbox = new THREE.Box3().setFromObject(scene);
-    const bottomY = bbox.min.y;
-    const tolerance = 0.05; // 5cm tolerans
 
-    // En alt noktaları bul
+    // Sadece önemli noktaları al
     scene.traverse((child) => {
       if (child.isMesh && child.geometry) {
-        const positions = child.geometry.attributes.position.array;
-        const matrix = child.matrixWorld;
+        const geometry = child.geometry;
+        const posAttr = geometry.attributes.position;
+        const vertices = [];
 
-        for (let i = 0; i < positions.length; i += 3) {
-          const vertex = new THREE.Vector3(
-            positions[i],
-            positions[i + 1],
-            positions[i + 2]
-          ).applyMatrix4(matrix);
+        // Her 10 noktadan birini al (optimizasyon)
+        for (let i = 0; i < posAttr.count; i += 10) {
+          vertices.push(new THREE.Vector3().fromBufferAttribute(posAttr, i));
+        }
 
-          // Sadece en alttaki noktaları al
-          if (Math.abs(vertex.y - bottomY) < tolerance) {
+        // Dünya koordinatlarına çevir
+        vertices.forEach(vertex => {
+          vertex.applyMatrix4(child.matrixWorld);
+          
+          // En alttaki noktaları bul
+          if (Math.abs(vertex.y - bbox.min.y) < 0.1) {
             const point = new THREE.Vector3(
               vertex.x * scene.scale.x,
               0,
               vertex.z * scene.scale.x
             );
-
-            // Tekrarlayan noktaları filtrele
-            if (!points.some(p => 
-              Math.abs(p.x - point.x) < tolerance && 
-              Math.abs(p.z - point.z) < tolerance
-            )) {
-              points.push(point);
-            }
+            points.add(point);
           }
-        }
+        });
       }
     });
 
-    // Debug için noktaları göster
-    const debugPoints = points.map((point, index) => (
+    // Köşe noktalarını ekle
+    const corners = [
+      new THREE.Vector3(bbox.min.x, 0, bbox.min.z),
+      new THREE.Vector3(bbox.min.x, 0, bbox.max.z),
+      new THREE.Vector3(bbox.max.x, 0, bbox.min.z),
+      new THREE.Vector3(bbox.max.x, 0, bbox.max.z)
+    ].map(p => p.multiplyScalar(scene.scale.x));
+
+    corners.forEach(corner => points.add(corner));
+
+    // Debug noktaları
+    const debugPoints = Array.from(points).map((point, index) => (
       <mesh key={index} position={point}>
         <sphereGeometry args={[0.03]} />
         <meshBasicMaterial color="red" />
@@ -78,6 +82,7 @@ const Model = () => {
     </group>
   );
 };
+
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
@@ -121,4 +126,4 @@ const Scene = () => {
   );
 };
 
-export default Scene;  // Export eklendi!
+export default Scene;
