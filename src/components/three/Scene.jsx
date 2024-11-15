@@ -30,8 +30,8 @@ const Model = () => {
       if (boxRef.current) {
         boxRef.current.position.set(
           (bbox.max.x + bbox.min.x) / 11,
-          (bbox.max.y + bbox.min.y) / 11,
-          (bbox.max.z + bbox.min.z) / 11
+          (bbox.max.y + bbox.min.y) / 2,
+          (bbox.max.z + bbox.min.z) / 2
         );
         boxRef.current.scale.set(size.x, size.y, size.z);
       }
