@@ -20,7 +20,7 @@ const Model = () => {
 
     const scene = gltf.scene;
     scene.scale.set(0.1, 0.1, 0.1);
-    scene.position.set(-0.05, -0.05, -0.1);
+    scene.position.set(0, -0.05, 0);
 
     const points = new Set(); // Tekrar eden noktaları otomatik filtrele
     const bbox = new THREE.Box3().setFromObject(scene);
