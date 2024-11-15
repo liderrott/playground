@@ -26,7 +26,7 @@ const Model = () => {
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
       // Modeli ölçeklendirme
-      gltf.scene.scale.set(0.1, 0.1, 0.1);
+      gltf.scene.scale.set(0.3, 0.3, 0.3);
 
       // Her mesh için kenar çizgisi oluştur
       gltf.scene.traverse((child) => {
