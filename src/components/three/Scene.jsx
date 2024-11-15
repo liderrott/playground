@@ -18,39 +18,19 @@ const Model = () => {
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      gltf.scene.scale.set(0.1, 0.1, 0.1);
+      gltf.scene.scale.set(0.005, 0.005, 0.005);
       
-      // Bounding box hesapla
-      const bbox = new THREE.Box3().setFromObject(gltf.scene);
-      
-      // Sadece yatay boyutları al
-      const size = new THREE.Vector3();
-      bbox.getSize(size);
-      size.y = 0.1; // Yüksekliği minimize et
-
-      // Box helper'ı yere yerleştir
-      if (boxRef.current) {
-        boxRef.current.position.set(
-          (bbox.max.x + bbox.min.x) / 2,
-          bbox.min.y + 0.05, // Yere yakın
-          (bbox.max.z + bbox.min.z) / 2
-        );
-        boxRef.current.scale.set(
-          size.x * 0.005, // Scale faktörünü uygula
-          size.y,
-          size.z * 0.005
-        );
-      }
+      // BoxHelper ekle
+      const box = new BoxHelper(gltf.scene, 0x0000ff);
+      box.material.opacity = 0.25;
+      box.material.transparent = true;
+      modelRef.current.add(box);
     }
   }, [gltf]);
 
   return (
     <group ref={modelRef}>
       <primitive object={gltf.scene} />
-      <mesh ref={boxRef} position={[0, 0, 0]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshBasicMaterial color="blue" transparent opacity={0.2} />
-      </mesh>
     </group>
   );
 };
