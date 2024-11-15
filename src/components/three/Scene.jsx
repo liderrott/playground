@@ -14,13 +14,13 @@ const Model = () => {
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   
-  const gltf = useLoader(GLTFLoader, '/models/EKO-21.glb', (loader) => {
+  const gltf = useLoader(GLTFLoader, '/models/1.glb', (loader) => {
     loader.setDRACOLoader(dracoLoader);
   });
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      gltf.scene.scale.set(0.1, 0.1, 0.1);
+      gltf.scene.scale.set(0.5, 0.5, 0.5);
       
       // Normal bounding box
       const box = new BoxHelper(gltf.scene, 0x0000ff);
