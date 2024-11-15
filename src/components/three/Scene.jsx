@@ -19,7 +19,7 @@ const Model = () => {
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      gltf.scene.scale.set(0.005, 0.005, 0.005);
+      gltf.scene.scale.set(0.1, 0.1, 0.1);
       
       // Bounding box hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
