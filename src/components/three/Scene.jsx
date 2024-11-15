@@ -69,7 +69,7 @@ const Model = () => {
       const rayPoints = [];
 
       // Grid üzerinde noktalar oluştur
-      const gridSize = 20;
+      const gridSize = 50;
       const step = (bbox.max.x - bbox.min.x) / gridSize;
 
       for (let x = bbox.min.x; x <= bbox.max.x; x += step) {
