@@ -28,7 +28,7 @@ const Model = () => {
       const groundPoints = [];
       const bbox = new THREE.Box3().setFromObject(scene);
       const bottomY = bbox.min.y;
-      const tolerance = 0.5; // 10cm yukarıya kadar olan noktaları al
+      const tolerance = 0.5; // 50cm yukarıya kadar olan noktaları al
 
       scene.traverse((child) => {
         if (child.isMesh && child.geometry) {
