@@ -29,9 +29,9 @@ const Model = () => {
       // Box helper oluştur
       if (boxRef.current) {
         boxRef.current.position.set(
-          (bbox.max.x + bbox.min.x) / 2,
-          (bbox.max.y + bbox.min.y) / 2,
-          (bbox.max.z + bbox.min.z) / 2
+          (bbox.max.x + bbox.min.x) / 11,
+          (bbox.max.y + bbox.min.y) / 11,
+          (bbox.max.z + bbox.min.z) / 11
         );
         boxRef.current.scale.set(size.x, size.y, size.z);
       }
