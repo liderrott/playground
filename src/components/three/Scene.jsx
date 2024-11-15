@@ -19,7 +19,7 @@ const Model = () => {
 
   useEffect(() => {
     if (gltf.scene && modelRef.current) {
-      gltf.scene.scale.set(0.005, 0.005, 0.005);
+      gltf.scene.scale.set(0.1, 0.1, 0.1);
       
       // BoxHelper ekle
       const box = new BoxHelper(gltf.scene, 0x0000ff);
@@ -35,6 +35,7 @@ const Model = () => {
     </group>
   );
 };
+
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
