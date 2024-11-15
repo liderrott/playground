@@ -19,116 +19,62 @@ const Model = () => {
     if (!gltf.scene) return;
 
     const scene = gltf.scene;
-    scene.scale.set(0.1, 0.1, 0.1);
-    scene.position.set(0, -0.05, 0);
+    scene.scale.set(0.005, 0.005, 0.005);
+    scene.position.set(0, 0, 0);
 
-    const points = new Set(); // Tekrar eden noktaları otomatik filtrele
+    const points = [];
     const bbox = new THREE.Box3().setFromObject(scene);
     const bottomY = bbox.min.y;
+    const tolerance = 0.05; // 5cm tolerans
 
-    // Sadece köşe noktalarını ve ayakları bul
-    const cornerPoints = [
-      new THREE.Vector3(bbox.min.x, bottomY, bbox.min.z),
-      new THREE.Vector3(bbox.min.x, bottomY, bbox.max.z),
-      new THREE.Vector3(bbox.max.x, bottomY, bbox.min.z),
-      new THREE.Vector3(bbox.max.x, bottomY, bbox.max.z)
-    ];
-
-    // Köşe noktalarını ekle
-    cornerPoints.forEach(point => {
-      point.multiplyScalar(scene.scale.x);
-      points.add({
-        position: point,
-        type: 'corner'
-      });
-    });
-
-    // Ayakları bul (daha az vertex kontrolü)
+    // En alt noktaları bul
     scene.traverse((child) => {
       if (child.isMesh && child.geometry) {
         const positions = child.geometry.attributes.position.array;
-        const stride = 9; // Her 9 vertexte bir kontrol et (optimizasyon)
+        const matrix = child.matrixWorld;
 
-        for (let i = 0; i < positions.length; i += stride) {
-          const y = positions[i + 1];
-          if (Math.abs(y - bottomY) < 0.1) {
+        for (let i = 0; i < positions.length; i += 3) {
+          const vertex = new THREE.Vector3(
+            positions[i],
+            positions[i + 1],
+            positions[i + 2]
+          ).applyMatrix4(matrix);
+
+          // Sadece en alttaki noktaları al
+          if (Math.abs(vertex.y - bottomY) < tolerance) {
             const point = new THREE.Vector3(
-              positions[i] * scene.scale.x,
+              vertex.x * scene.scale.x,
               0,
-              positions[i + 2] * scene.scale.x
+              vertex.z * scene.scale.x
             );
-            points.add({
-              position: point,
-              type: 'ground'
-            });
+
+            // Tekrarlayan noktaları filtrele
+            if (!points.some(p => 
+              Math.abs(p.x - point.x) < tolerance && 
+              Math.abs(p.z - point.z) < tolerance
+            )) {
+              points.push(point);
+            }
           }
         }
       }
     });
 
-    setCriticalPoints(Array.from(points));
+    // Debug için noktaları göster
+    const debugPoints = points.map((point, index) => (
+      <mesh key={index} position={point}>
+        <sphereGeometry args={[0.03]} />
+        <meshBasicMaterial color="red" />
+      </mesh>
+    ));
+
+    setCriticalPoints(debugPoints);
   }, [gltf]);
 
   return (
     <group>
       <primitive object={gltf.scene} />
-      
-      {criticalPoints.map((point, index) => (
-        <mesh 
-          key={index} 
-          position={point.position}
-        >
-          <sphereGeometry args={[0.02]} />
-          <meshBasicMaterial 
-            color={point.type === 'ground' ? 'red' : 'blue'} 
-          />
-        </mesh>
-      ))}
+      {criticalPoints}
     </group>
   );
 };
-
-const Scene = () => {
-  return (
-    <div style={{ height: 'calc(100vh - 64px)' }}>
-      <Canvas 
-        camera={{ 
-          position: [4, 4, 4], 
-          fov: 50,
-          near: 0.1,
-          far: 1000
-        }}
-      >
-        <Suspense fallback={null}>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          
-          <Grid 
-            args={[10, 10]} 
-            position={[0, 0, 0]}
-            cellSize={0.5}
-            cellThickness={0.5}
-            cellColor="#6f6f6f"
-            sectionSize={2}
-            sectionThickness={1}
-            sectionColor="#9d4b4b"
-            fadeDistance={30}
-            fadeStrength={1}
-            followCamera={false}
-          />
-          
-          <OrbitControls 
-            enableDamping={true}
-            dampingFactor={0.05}
-          />
-          
-          <Model />
-          
-          <axesHelper args={[5]} />
-        </Suspense>
-      </Canvas>
-    </div>
-  );
-};
-
-export default Scene;  // Export eklendi!
