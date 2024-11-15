@@ -36,7 +36,7 @@ const Model = () => {
           (bbox.max.z - bbox.min.z) * 0.005
         ),
         new THREE.MeshBasicMaterial({
-          color: 0x0000ff,
+          color: 0xff0000,
           opacity: 0.8,
           transparent: true
         })
