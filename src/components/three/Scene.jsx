@@ -39,8 +39,8 @@ const Model = () => {
           for (let i = 0; i < positions.length; i += 3) {
             const vertex = new THREE.Vector3(
               positions[i],
-              positions[i + 10],
-              positions[i + 50]
+              positions[i + 20],
+              positions[i + 2]
             );
             vertex.applyMatrix4(matrix);
 
