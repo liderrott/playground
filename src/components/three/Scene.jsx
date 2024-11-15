@@ -8,7 +8,6 @@ import * as THREE from 'three';
 
 const Model = () => {
   const modelRef = useRef();
-  const boxRef = useRef();
 
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
