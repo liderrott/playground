@@ -23,7 +23,7 @@ const Model = () => {
       
       // Normal bounding box
       const box = new BoxHelper(gltf.scene, 0x0000ff);
-      box.material.opacity = 0.25;
+      box.material.opacity = 0.8;
       box.material.transparent = true;
       modelRef.current.add(box);
 
