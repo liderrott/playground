@@ -8,6 +8,8 @@ import * as THREE from 'three';
 
 const Model = () => {
   const [criticalPoints, setCriticalPoints] = useState([]);
+  const [projectedShape, setProjectedShape] = useState(null);
+  
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   
@@ -19,49 +21,87 @@ const Model = () => {
     if (!gltf.scene) return;
 
     const scene = gltf.scene;
-    scene.scale.set(0.1, 0.1, 0.1);
+    scene.scale.set(0.005, 0.005, 0.005);
     scene.position.set(0, 0, 0);
 
-    const points = [];
-    const bbox = new THREE.Box3().setFromObject(scene);
-    const bottomY = bbox.min.y;
-    const tolerance = 0.05; // 5cm tolerans
+    const points = new Set();
+    const raycaster = new THREE.Raycaster();
+    const meshes = [];
 
-    // En alt noktaları bul
+    // Tüm mesh'leri topla
     scene.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const positions = child.geometry.attributes.position.array;
-        const matrix = child.matrixWorld;
+      if (child.isMesh) {
+        meshes.push(child);
+      }
+    });
 
+    // Grid oluştur ve her noktadan aşağı doğru ışın gönder
+    const gridSize = 0.2; // 20cm aralıklarla
+    const bbox = new THREE.Box3().setFromObject(scene);
+    
+    for (let x = bbox.min.x; x <= bbox.max.x; x += gridSize) {
+      for (let z = bbox.min.z; z <= bbox.max.z; z += gridSize) {
+        const origin = new THREE.Vector3(x, bbox.max.y + 1, z);
+        const direction = new THREE.Vector3(0, -1, 0);
+        
+        raycaster.set(origin, direction);
+        const intersects = raycaster.intersectObjects(meshes);
+        
+        if (intersects.length > 0) {
+          const point = new THREE.Vector3(
+            intersects[0].point.x * scene.scale.x,
+            0,
+            intersects[0].point.z * scene.scale.x
+          );
+          points.add(point);
+        }
+      }
+    }
+
+    // Kaydırakların uç noktalarını bul
+    meshes.forEach(mesh => {
+      if (mesh.geometry) {
+        const positions = mesh.geometry.attributes.position.array;
         for (let i = 0; i < positions.length; i += 3) {
           const vertex = new THREE.Vector3(
             positions[i],
             positions[i + 1],
             positions[i + 2]
-          ).applyMatrix4(matrix);
+          ).applyMatrix4(mesh.matrixWorld);
 
-          // Sadece en alttaki noktaları al
-          if (Math.abs(vertex.y - bottomY) < tolerance) {
+          // Uç noktaları bul (en uzak noktalar)
+          const distance = new THREE.Vector2(vertex.x, vertex.z).length();
+          if (distance > bbox.max.x * 0.7) {
             const point = new THREE.Vector3(
               vertex.x * scene.scale.x,
               0,
               vertex.z * scene.scale.x
             );
-
-            // Tekrarlayan noktaları filtrele
-            if (!points.some(p => 
-              Math.abs(p.x - point.x) < tolerance && 
-              Math.abs(p.z - point.z) < tolerance
-            )) {
-              points.push(point);
-            }
+            points.add(point);
           }
         }
       }
     });
 
+    // Noktaları array'e çevir
+    const pointsArray = Array.from(points);
+
+    // İz düşüm şeklini oluştur
+    const shape = new THREE.Shape();
+    if (pointsArray.length > 0) {
+      shape.moveTo(pointsArray[0].x, pointsArray[0].z);
+      pointsArray.forEach((point, i) => {
+        if (i > 0) {
+          shape.lineTo(point.x, point.z);
+        }
+      });
+      shape.lineTo(pointsArray[0].x, pointsArray[0].z);
+    }
+
+    setProjectedShape(shape);
+
     // Debug için noktaları göster
-    const debugPoints = points.map((point, index) => (
+    const debugPoints = pointsArray.map((point, index) => (
       <mesh key={index} position={point}>
         <sphereGeometry args={[0.03]} />
         <meshBasicMaterial color="red" />
@@ -75,9 +115,16 @@ const Model = () => {
     <group>
       <primitive object={gltf.scene} />
       {criticalPoints}
+      {projectedShape && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+          <shapeGeometry args={[projectedShape]} />
+          <meshBasicMaterial color="#4287f5" transparent opacity={0.3} side={THREE.DoubleSide} />
+        </mesh>
+      )}
     </group>
   );
 };
+
 const Scene = () => {
   return (
     <div style={{ height: 'calc(100vh - 64px)' }}>
@@ -121,4 +168,4 @@ const Scene = () => {
   );
 };
 
-export default Scene;  // Export eklendi!
+export default Scene;
