@@ -65,7 +65,7 @@ const Model = () => {
 
       // Raycasting ile zemine değen noktaları kontrol et
       const raycaster = new THREE.Raycaster();
-      const direction = new THREE.Vector3(1, -1, 1);
+      const direction = new THREE.Vector3(0, -1, 0);
       const rayPoints = [];
 
       // Grid üzerinde noktalar oluştur
