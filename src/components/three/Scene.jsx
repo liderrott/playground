@@ -31,6 +31,12 @@ const Model = () => {
       // Boyutları hesapla
       const bbox = new THREE.Box3().setFromObject(gltf.scene);
       setBoundingBox(bbox);
+
+      console.log('Model boyutları:', {
+        width: (bbox.max.x - bbox.min.x) * 0.1,
+        depth: (bbox.max.z - bbox.min.z) * 0.1,
+        height: (bbox.max.y - bbox.min.y) * 0.1
+      });
     }
   }, [gltf]);
 
