@@ -48,7 +48,7 @@ const Model = () => {
             if (Math.abs(vertex.y - bottomY) <= tolerance) {
               const point = new THREE.Vector2(
                 vertex.x * scene.scale.x,
-                vertex.z * scene.scale.x
+                vertex.z * scene.scale.y
               );
               
               // Tekrarlayan noktaları filtrele
