@@ -35,8 +35,8 @@ const Model = () => {
       
       setBoundingBox({
         size: {
-          x: (bbox.max.x - bbox.min.x) * 0.1,
-          z: (bbox.max.z - bbox.min.z) * 0.1
+          x: (bbox.max.x - bbox.min.x) ,
+          z: (bbox.max.z - bbox.min.z)
         },
         center: {
           x: center.x * 0.1,
@@ -59,7 +59,7 @@ const Model = () => {
           />
           <meshBasicMaterial 
             color="#0000ff"
-            opacity={0.2}
+            opacity={0.3}
             transparent
             side={THREE.DoubleSide}
           />
