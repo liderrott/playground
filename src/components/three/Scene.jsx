@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Grid } from '@react-three/drei';
 import { useLoader } from '@react-three/fiber';
@@ -7,7 +7,9 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader';
 import * as THREE from 'three';
 
 const Model = () => {
-  const [criticalPoints, setCriticalPoints] = useState([]);
+  const modelRef = useRef();
+  const boxRef = useRef();
+
   const dracoLoader = new DRACOLoader();
   dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
   
@@ -16,69 +18,33 @@ const Model = () => {
   });
 
   useEffect(() => {
-    if (!gltf.scene) return;
+    if (gltf.scene && modelRef.current) {
+      gltf.scene.scale.set(0.005, 0.005, 0.005);
+      
+      // Bounding box hesapla
+      const bbox = new THREE.Box3().setFromObject(gltf.scene);
+      const size = new THREE.Vector3();
+      bbox.getSize(size);
 
-    const scene = gltf.scene;
-    scene.scale.set(0.005, 0.005, 0.005);
-    scene.position.set(0, 0, 0);
-
-    const points = new Set();
-    const bbox = new THREE.Box3().setFromObject(scene);
-
-    // Sadece önemli noktaları al
-    scene.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const geometry = child.geometry;
-        const posAttr = geometry.attributes.position;
-        const vertices = [];
-
-        // Her 10 noktadan birini al (optimizasyon)
-        for (let i = 0; i < posAttr.count; i += 10) {
-          vertices.push(new THREE.Vector3().fromBufferAttribute(posAttr, i));
-        }
-
-        // Dünya koordinatlarına çevir
-        vertices.forEach(vertex => {
-          vertex.applyMatrix4(child.matrixWorld);
-          
-          // En alttaki noktaları bul
-          if (Math.abs(vertex.y - bbox.min.y) < 0.1) {
-            const point = new THREE.Vector3(
-              vertex.x * scene.scale.x,
-              0,
-              vertex.z * scene.scale.x
-            );
-            points.add(point);
-          }
-        });
+      // Box helper oluştur
+      if (boxRef.current) {
+        boxRef.current.position.set(
+          (bbox.max.x + bbox.min.x) / 2,
+          (bbox.max.y + bbox.min.y) / 2,
+          (bbox.max.z + bbox.min.z) / 2
+        );
+        boxRef.current.scale.set(size.x, size.y, size.z);
       }
-    });
-
-    // Köşe noktalarını ekle
-    const corners = [
-      new THREE.Vector3(bbox.min.x, 0, bbox.min.z),
-      new THREE.Vector3(bbox.min.x, 0, bbox.max.z),
-      new THREE.Vector3(bbox.max.x, 0, bbox.min.z),
-      new THREE.Vector3(bbox.max.x, 0, bbox.max.z)
-    ].map(p => p.multiplyScalar(scene.scale.x));
-
-    corners.forEach(corner => points.add(corner));
-
-    // Debug noktaları
-    const debugPoints = Array.from(points).map((point, index) => (
-      <mesh key={index} position={point}>
-        <sphereGeometry args={[0.03]} />
-        <meshBasicMaterial color="red" />
-      </mesh>
-    ));
-
-    setCriticalPoints(debugPoints);
+    }
   }, [gltf]);
 
   return (
-    <group>
+    <group ref={modelRef}>
       <primitive object={gltf.scene} />
-      {criticalPoints}
+      <mesh ref={boxRef} position={[0, 0, 0]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial color="blue" transparent opacity={0.2} />
+      </mesh>
     </group>
   );
 };
@@ -89,36 +55,20 @@ const Scene = () => {
       <Canvas 
         camera={{ 
           position: [4, 4, 4], 
-          fov: 50,
-          near: 0.1,
-          far: 1000
+          fov: 50
         }}
       >
         <Suspense fallback={null}>
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
-          
           <Grid 
             args={[10, 10]} 
             position={[0, 0, 0]}
             cellSize={0.5}
-            cellThickness={0.5}
             cellColor="#6f6f6f"
-            sectionSize={2}
-            sectionThickness={1}
-            sectionColor="#9d4b4b"
-            fadeDistance={30}
-            fadeStrength={1}
-            followCamera={false}
           />
-          
-          <OrbitControls 
-            enableDamping={true}
-            dampingFactor={0.05}
-          />
-          
+          <OrbitControls />
           <Model />
-          
           <axesHelper args={[5]} />
         </Suspense>
       </Canvas>
