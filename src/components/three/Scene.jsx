@@ -19,7 +19,7 @@ const Model = () => {
     if (!gltf.scene) return;
 
     const scene = gltf.scene;
-    scene.scale.set(0.005, 0.005, 0.005);
+    scene.scale.set(0.1, 0.1, 0.1);
     scene.position.set(0, 0, 0);
 
     const points = new Set(); // Tekrar eden noktaları otomatik filtrele
@@ -87,3 +87,48 @@ const Model = () => {
     </group>
   );
 };
+
+const Scene = () => {
+  return (
+    <div style={{ height: 'calc(100vh - 64px)' }}>
+      <Canvas 
+        camera={{ 
+          position: [4, 4, 4], 
+          fov: 50,
+          near: 0.1,
+          far: 1000
+        }}
+      >
+        <Suspense fallback={null}>
+          <ambientLight intensity={0.5} />
+          <directionalLight position={[10, 10, 5]} intensity={1} />
+          
+          <Grid 
+            args={[10, 10]} 
+            position={[0, 0, 0]}
+            cellSize={0.5}
+            cellThickness={0.5}
+            cellColor="#6f6f6f"
+            sectionSize={2}
+            sectionThickness={1}
+            sectionColor="#9d4b4b"
+            fadeDistance={30}
+            fadeStrength={1}
+            followCamera={false}
+          />
+          
+          <OrbitControls 
+            enableDamping={true}
+            dampingFactor={0.05}
+          />
+          
+          <Model />
+          
+          <axesHelper args={[5]} />
+        </Suspense>
+      </Canvas>
+    </div>
+  );
+};
+
+export default Scene;  // Export eklendi!
