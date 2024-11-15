@@ -47,7 +47,7 @@ const Model = () => {
             // Zemine yakın noktaları al
             if (Math.abs(vertex.y - bottomY) <= tolerance) {
               const point = new THREE.Vector2(
-                vertex.x * scene.scale.x,
+                vertex.y * scene.scale.y,
                 vertex.z * scene.scale.y
               );
               
