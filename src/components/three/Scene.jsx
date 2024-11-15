@@ -39,7 +39,7 @@ const Model = () => {
             edges,
             new LineBasicMaterial({ 
               color: '#0000ff',
-              linewidth: 2,     // Daha kalın çizgi
+              linewidth: 5,     // Daha kalın çizgi
               transparent: true,
               opacity: 0.8      // Daha belirgin
             })
