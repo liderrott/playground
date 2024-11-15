@@ -22,20 +22,21 @@ const Model = () => {
   useEffect(() => {
     if (gltf.scene) {
       const scene = gltf.scene;
-      scene.scale.set(0.1, 0.1, 0.1);
+      scene.scale.set(0.005, 0.005, 0.005);
       scene.position.set(0, 0, 0);
 
       const groundPoints = [];
       const bbox = new THREE.Box3().setFromObject(scene);
       const bottomY = bbox.min.y;
-      const tolerance = 0.5; // 50cm yukarıya kadar olan noktaları al
 
+      // Tüm mesh'leri analiz et
       scene.traverse((child) => {
         if (child.isMesh && child.geometry) {
-          const positions = child.geometry.attributes.position.array;
+          const geometry = child.geometry;
+          const positions = geometry.attributes.position.array;
           const matrix = child.matrixWorld;
 
-          // Her vertex'i kontrol et
+          // Her vertex için
           for (let i = 0; i < positions.length; i += 3) {
             const vertex = new THREE.Vector3(
               positions[i],
@@ -44,59 +45,77 @@ const Model = () => {
             );
             vertex.applyMatrix4(matrix);
 
-            // Zemine yakın noktaları al
-            if (Math.abs(vertex.y - bottomY) <= tolerance) {
+            // En alttaki noktaları ve yakın çevresini al
+            if (Math.abs(vertex.y - bottomY) < 0.2) {
               const point = new THREE.Vector2(
                 vertex.x * scene.scale.x,
-                vertex.y * scene.scale.y
+                vertex.z * scene.scale.x
               );
-              
-              // Tekrarlayan noktaları filtrele
-              if (!groundPoints.some(p => 
-                Math.abs(p.x - point.x) < 0.01 && 
-                Math.abs(p.y - point.y) < 0.01
-              )) {
-                groundPoints.push(point);
-              }
+              groundPoints.push(point);
             }
           }
+
+          // Geometrinin bounding box'ını al
+          geometry.computeBoundingBox();
+          const geoBBox = geometry.boundingBox.clone();
+          geoBBox.applyMatrix4(matrix);
+
+          // Alt köşe noktalarını ekle
+          const geoPoints = [
+            new THREE.Vector2(geoBBox.min.x, geoBBox.min.z),
+            new THREE.Vector2(geoBBox.min.x, geoBBox.max.z),
+            new THREE.Vector2(geoBBox.max.x, geoBBox.min.z),
+            new THREE.Vector2(geoBBox.max.x, geoBBox.max.z)
+          ].map(p => p.multiplyScalar(scene.scale.x));
+
+          groundPoints.push(...geoPoints);
         }
       });
 
-      // Raycasting ile zemine değen noktaları kontrol et
-      const raycaster = new THREE.Raycaster();
-      const direction = new THREE.Vector3(0, -1, 0);
-      const rayPoints = [];
+      // Ana bounding box'ın köşe noktalarını ekle
+      const corners = [
+        new THREE.Vector2(bbox.min.x, bbox.min.z),
+        new THREE.Vector2(bbox.min.x, bbox.max.z),
+        new THREE.Vector2(bbox.max.x, bbox.min.z),
+        new THREE.Vector2(bbox.max.x, bbox.max.z),
+        // Orta noktaları da ekle
+        new THREE.Vector2(bbox.min.x, (bbox.min.z + bbox.max.z) / 2),
+        new THREE.Vector2(bbox.max.x, (bbox.min.z + bbox.max.z) / 2),
+        new THREE.Vector2((bbox.min.x + bbox.max.x) / 2, bbox.min.z),
+        new THREE.Vector2((bbox.min.x + bbox.max.x) / 2, bbox.max.z)
+      ].map(p => p.multiplyScalar(scene.scale.x));
 
-      // Grid üzerinde noktalar oluştur
-      const gridSize = 10;
-      const step = (bbox.max.x - bbox.min.x) / gridSize;
+      groundPoints.push(...corners);
 
-      for (let x = bbox.min.x; x <= bbox.max.x; x += step) {
-        for (let z = bbox.min.z; z <= bbox.max.z; z += step) {
-          const origin = new THREE.Vector3(x, bbox.max.y + 1, z);
-          raycaster.set(origin, direction);
+      // Güvenlik marjı ekle
+      const margin = 0.3; // 30cm güvenlik marjı
+      corners.forEach(corner => {
+        const directions = [
+          new THREE.Vector2(1, 1),
+          new THREE.Vector2(1, -1),
+          new THREE.Vector2(-1, 1),
+          new THREE.Vector2(-1, -1)
+        ];
 
-          const intersects = raycaster.intersectObject(scene, true);
-          if (intersects.length > 0) {
-            const point = new THREE.Vector2(
-              intersects[0].point.x * scene.scale.x,
-              intersects[0].point.z * scene.scale.x
-            );
-            rayPoints.push(point);
-          }
-        }
-      }
+        directions.forEach(dir => {
+          const safetyPoint = corner.clone().add(dir.normalize().multiplyScalar(margin));
+          groundPoints.push(safetyPoint);
+        });
+      });
 
-      // Tüm noktaları birleştir
-      const allPoints = [...groundPoints, ...rayPoints];
+      // Tekrarlayan noktaları filtrele
+      const uniquePoints = groundPoints.filter((point, index, self) =>
+        index === self.findIndex(p => 
+          Math.abs(p.x - point.x) < 0.01 && Math.abs(p.y - point.y) < 0.01
+        )
+      );
 
       // Convex hull hesapla
-      const hull = jarvisMarch(allPoints);
+      const hull = jarvisMarch(uniquePoints);
       
       // Noktaları yumuşat ve genişlet
-      const expandedHull = expandHull(hull, 0.3);
-      const smoothedHull = smoothPoints(expandedHull, 0.15);
+      const expandedHull = expandHull(hull, 0.6); // Genişletme faktörünü artırdık
+      const smoothedHull = smoothPoints(expandedHull, 0.1);
 
       // 3D noktaları oluştur
       const groundProjection = smoothedHull.map(p => 
